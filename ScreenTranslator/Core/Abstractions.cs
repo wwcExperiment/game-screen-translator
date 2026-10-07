@@ -45,5 +45,17 @@ public interface ITranslator
     /// <summary>长期摘要更新后触发（可能在后台线程）。</summary>
     event Action? SummaryChanged;
 
+    /// <summary>短期摘要压缩开始（可能在后台线程）。</summary>
+    event Action? SummaryStarted;
+
+    /// <summary>短期摘要压缩结束（可能在后台线程）。</summary>
+    event Action? SummaryFinished;
+
+    /// <summary>长期剧情梗概补充开始（可能在后台线程）。</summary>
+    event Action? StoryStarted;
+
+    /// <summary>长期剧情梗概补充结束（可能在后台线程）。</summary>
+    event Action? StoryFinished;
+
     Task<string> TranslateAsync(byte[] pngBytes, CancellationToken cancellationToken);
 }

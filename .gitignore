@@ -19,6 +19,11 @@ memory/
 *.exe
 *.dll
 *.pdb
+release/
+
+# 发布成果物（上传到 GitHub Releases，不入库）
+GameScreenTranslator/
+*.zip
 
 # Codegraph 索引
 .codegraph/

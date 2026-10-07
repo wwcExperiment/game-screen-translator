@@ -66,6 +66,7 @@ internal static class Program
             SummaryLengthPrompt = config.SummaryLengthPrompt,
             SummaryPrefix = config.SummaryPrefix,
             UserTurnMarker = config.UserTurnMarker,
+            TargetLanguage = config.TargetLanguage,
         };
         Application.Run(new MainForm(config, translator, client, models, store, configPath));
     }

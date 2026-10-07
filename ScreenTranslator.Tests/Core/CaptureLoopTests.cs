@@ -40,6 +40,10 @@ public sealed class CaptureLoopTests
         public bool StoryEnabled { get; set; } = true;
 #pragma warning disable CS0067 // 事件仅用于满足接口，测试未触发
         public event Action? SummaryChanged;
+        public event Action? SummaryStarted;
+        public event Action? SummaryFinished;
+        public event Action? StoryStarted;
+        public event Action? StoryFinished;
 #pragma warning restore CS0067
         public readonly List<byte[]> Requests = new();
         public readonly List<CancellationToken> Tokens = new();

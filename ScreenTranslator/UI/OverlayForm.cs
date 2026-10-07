@@ -23,6 +23,7 @@ public sealed class OverlayForm : Form
     private Font _font;
     private int _maxWidth;
     private float _lineSpacing = 1.0f;
+    private bool _thickOutline;
 
     private readonly List<string> _lines = new();
     private int _lineHeight;
@@ -59,6 +60,19 @@ public sealed class OverlayForm : Form
         {
             _lineSpacing = value;
             RebuildLayout();
+            Invalidate();
+        }
+    }
+
+    /// <summary>描边粗细：false=细描边（单次 1px 阴影，默认）；true=粗描边（四周约 2px）。</summary>
+    [DefaultValue(false)]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public bool ThickOutline
+    {
+        get => _thickOutline;
+        set
+        {
+            _thickOutline = value;
             Invalidate();
         }
     }
@@ -185,9 +199,27 @@ public sealed class OverlayForm : Form
         for (var i = 0; i < _lines.Count; i++)
         {
             var y = 1 + i * _advance;
-            var shadowRect = new Rectangle(2, y + 1, Math.Max(1, Width - 2), _advance);
             var textRect = new Rectangle(1, y, Math.Max(1, Width - 2), _advance);
-            TextRenderer.DrawText(e.Graphics, _lines[i], _font, shadowRect, Color.Black, LineFlags);
+
+            if (_thickOutline)
+            {
+                // 粗描边：在文字四周 5×5 邻域（去中心）各画一遍黑底，再叠白字，形成约 2px 描边。
+                for (var dx = -2; dx <= 2; dx++)
+                    for (var dy = -2; dy <= 2; dy++)
+                    {
+                        if (dx == 0 && dy == 0)
+                            continue;
+                        var outlineRect = new Rectangle(1 + dx, y + dy, Math.Max(1, Width - 2), _advance);
+                        TextRenderer.DrawText(e.Graphics, _lines[i], _font, outlineRect, Color.Black, LineFlags);
+                    }
+            }
+            else
+            {
+                // 细描边（默认）：单次右下 1px 阴影。
+                var shadowRect = new Rectangle(2, y + 1, Math.Max(1, Width - 2), _advance);
+                TextRenderer.DrawText(e.Graphics, _lines[i], _font, shadowRect, Color.Black, LineFlags);
+            }
+
             TextRenderer.DrawText(e.Graphics, _lines[i], _font, textRect, Color.White, LineFlags);
         }
     }

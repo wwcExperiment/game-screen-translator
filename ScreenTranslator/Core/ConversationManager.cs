@@ -22,6 +22,7 @@ public sealed class ConversationManager : ITranslator
     private readonly ITranslationClient _client;
     private readonly IStoryStore? _storyStore;
     private string _prompt;
+    private string _targetLanguage = "中文";
     private string _summaryPrompt = AppConfig.DefaultSummaryPrompt;
     private string _storyPrompt = AppConfig.DefaultStoryPrompt;
     private string _summaryLengthPrompt = AppConfig.DefaultSummaryLengthPrompt;
@@ -77,6 +78,18 @@ public sealed class ConversationManager : ITranslator
     /// <summary>长期摘要更新后触发（可能在后台线程）。</summary>
     public event Action? SummaryChanged;
 
+    /// <summary>短期摘要压缩开始（可能在后台线程）。</summary>
+    public event Action? SummaryStarted;
+
+    /// <summary>短期摘要压缩结束（可能在后台线程）。</summary>
+    public event Action? SummaryFinished;
+
+    /// <summary>长期剧情梗概补充开始（可能在后台线程）。</summary>
+    public event Action? StoryStarted;
+
+    /// <summary>长期剧情梗概补充结束（可能在后台线程）。</summary>
+    public event Action? StoryFinished;
+
     public string? Summary { get { lock (_gate) return _summary; } }
 
     /// <summary>设置长期摘要（例如启动/切换窗口时从磁盘恢复长期记忆）。</summary>
@@ -93,6 +106,13 @@ public sealed class ConversationManager : ITranslator
     {
         get { lock (_gate) return _prompt; }
         set { lock (_gate) _prompt = value ?? ""; }
+    }
+
+    /// <summary>目标语言：翻译提示词中的 {lang} 占位符在请求时替换为此值。</summary>
+    public string TargetLanguage
+    {
+        get { lock (_gate) return _targetLanguage; }
+        set { lock (_gate) _targetLanguage = string.IsNullOrWhiteSpace(value) ? "中文" : value; }
     }
 
     /// <summary>近期摘要压缩提示词。</summary>
@@ -147,7 +167,7 @@ public sealed class ConversationManager : ITranslator
             if (_summaryEnabled && _summary is not null)
                 messages.Add(new ChatMessage { Role = "system", Text = _summaryPrefix + _summary });
             messages.AddRange(_recent);
-            messages.Add(new ChatMessage { Role = "user", Text = _prompt, ImagePng = png });
+            messages.Add(new ChatMessage { Role = "user", Text = _prompt.Replace("{lang}", _targetLanguage), ImagePng = png });
             return messages;
         }
     }
@@ -251,6 +271,7 @@ public sealed class ConversationManager : ITranslator
                     Text = _summaryPrompt,
                 });
 
+                SummaryStarted?.Invoke();
                 string summary;
                 try
                 {
@@ -264,6 +285,7 @@ public sealed class ConversationManager : ITranslator
                 // 二次检测：模型经常超长，先用加重语气要求裁剪；仍超两倍上限则字符串硬裁。
                 if (!string.IsNullOrWhiteSpace(summary) && summary.Length > SummaryCharLimit)
                     summary = await EnforceSummaryLength(summary);
+                SummaryFinished?.Invoke();
 
                 if (!string.IsNullOrWhiteSpace(summary))
                 {
@@ -370,6 +392,7 @@ public sealed class ConversationManager : ITranslator
 
         LogStoryDebug("输入", prompt.ToString());
 
+        StoryStarted?.Invoke();
         string addition;
         try
         {
@@ -382,6 +405,10 @@ public sealed class ConversationManager : ITranslator
         catch
         {
             return;
+        }
+        finally
+        {
+            StoryFinished?.Invoke();
         }
 
         LogStoryDebug("输出", addition ?? "<null>");

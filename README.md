@@ -54,14 +54,9 @@ Then edit `config.json`. If `EndpointUrl` is left empty, the app shows a dialog 
 |-----|---------|
 | `EndpointUrl` | OpenAI-compatible chat completions URL, e.g. `http://127.0.0.1:1234/v1/chat/completions` (LM Studio), `http://127.0.0.1:11434/v1/chat/completions` (Ollama), `https://api.openai.com/v1/chat/completions`, or `https://api.deepseek.com/chat/completions` (DeepSeek) |
 | `ApiKey` | Bearer API key for remote endpoints; leave `""` for local servers (LM Studio / Ollama) |
-| `Model` | model name; leave `""` to use the built-in default. The app also lists models from `/v1/models` at startup |
-| `SummarizeModel` | model used for summary/story compression; leave `""` to follow `Model` |
-| `Prompt` | the translation prompt |
-| `SummaryPrompt` / `StoryPrompt` / `SummaryLengthPrompt` / `SummaryPrefix` / `UserTurnMarker` | summary & story prompts and markers (all editable) |
-| `OverlayEnabled` / `OverlayPosition` / `OverlayLineSpacing` | overlay toggle & placement (`top` / `center` / `bottom`) |
-| `PauseWhenNotForeground` | pause when the target window loses focus |
-| `PollIntervalMs` / `DebounceMs` / `MaxWaitMs` / `MaxWaitCeilingMs` | capture & change-detection tuning |
-| `SummaryEnabled` / `StoryEnabled` | short-term memory / long-term archive (both off by default) |
+| `Prompt` / `SummaryPrompt` / `StoryPrompt` / `SummaryLengthPrompt` / `SummaryPrefix` / `UserTurnMarker` | prompts & markers (all editable); `{lang}` in `Prompt` is replaced by `TargetLanguage` (default `中文`) |
+
+Everything else — model & summary model (auto-discovered from `/v1/models`), overlay, pause behaviour, capture tuning, and the summary/story toggles — is configurable in the UI.
 
 The app reads `config.json` next to the executable by default, or from a path passed as the first command-line argument.
 

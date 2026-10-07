@@ -27,6 +27,7 @@ public sealed class MainForm : Form
     private readonly CheckBox _summaryCheck;
     private readonly CheckBox _storyCheck;
     private readonly CheckBox _pauseWhenNotForegroundCheck;
+    private readonly CheckBox _outlineCheck;
     private readonly ModelClient _modelClient;
     private readonly SummaryStore _store;
     private readonly string _configPath;
@@ -38,6 +39,7 @@ public sealed class MainForm : Form
     private IntPtr? _targetWindow;
     private Font _font;
     private bool _frozen;
+    private DateTime _translateStartedAt;
     private bool _pauseWhenNotForeground;
     private SummaryPopupForm? _summaryPopup;
     private string? _currentProcess;
@@ -216,13 +218,23 @@ public sealed class MainForm : Form
         };
         _lineSpacingNumeric.ValueChanged += (_, _) => ApplyLineSpacing();
 
+        // 文字描边：关=细描边（默认，1px 阴影），开=粗描边（四周约 2px）
+        _outlineCheck = new CheckBox
+        {
+            Text = "粗描边",
+            Location = new Point(12, 140),
+            AutoSize = true,
+            Checked = _config.OverlayThickOutline,
+        };
+        _outlineCheck.CheckedChanged += (_, _) => ApplyOutline();
+
         // 提示词
-        var promptLabel = new Label { Text = "提示词", Location = new Point(12, 148), AutoSize = true };
+        var promptLabel = new Label { Text = "提示词", Location = new Point(12, 172), AutoSize = true };
         var promptBox = new TextBox
         {
             Multiline = true,
             ScrollBars = ScrollBars.Vertical,
-            Location = new Point(56, 144),
+            Location = new Point(56, 168),
             Size = new Size(492, 60),
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
             Text = _config.Prompt,
@@ -230,7 +242,9 @@ public sealed class MainForm : Form
         promptBox.TextChanged += (_, _) =>
         {
             _translator.Prompt = promptBox.Text;
+            _config.Prompt = promptBox.Text;
             Pause(); // 编辑提示词时自动暂停
+            SaveConfig(); // 提示词改动写回 config.json
         };
 
         // 译文
@@ -239,7 +253,7 @@ public sealed class MainForm : Form
             Multiline = true,
             ReadOnly = true,
             ScrollBars = ScrollBars.Vertical,
-            Location = new Point(12, 212),
+            Location = new Point(12, 236),
             Size = new Size(536, 150),
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
             Font = _font,
@@ -249,7 +263,7 @@ public sealed class MainForm : Form
         _summaryButton = new Button
         {
             Text = "查看摘要",
-            Location = new Point(100, 362),
+            Location = new Point(100, 386),
             Size = new Size(88, 26),
             Anchor = AnchorStyles.Top | AnchorStyles.Left,
         };
@@ -259,7 +273,7 @@ public sealed class MainForm : Form
         _summaryCheck = new CheckBox
         {
             Text = "短期记忆",
-            Location = new Point(200, 366),
+            Location = new Point(200, 390),
             AutoSize = true,
             Checked = _config.SummaryEnabled,
         };
@@ -268,20 +282,20 @@ public sealed class MainForm : Form
         _storyCheck = new CheckBox
         {
             Text = "长期留档",
-            Location = new Point(310, 366),
+            Location = new Point(310, 390),
             AutoSize = true,
             Checked = _config.StoryEnabled,
         };
         _storyCheck.CheckedChanged += (_, _) => ApplyMemoryToggles();
 
-        var historyLabel = new Label { Text = "历史记录", Location = new Point(12, 368), AutoSize = true };
+        var historyLabel = new Label { Text = "历史记录", Location = new Point(12, 392), AutoSize = true };
         _historyBox = new TextBox
         {
             Multiline = true,
             ReadOnly = true,
             ScrollBars = ScrollBars.Vertical,
-            Location = new Point(12, 386),
-            Size = new Size(536, 280),
+            Location = new Point(12, 410),
+            Size = new Size(536, 256),
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
             Font = new Font("Microsoft YaHei UI", 10F),
         };
@@ -305,6 +319,7 @@ public sealed class MainForm : Form
         Controls.Add(_fontSizeNumeric);
         Controls.Add(lineSpacingLabel);
         Controls.Add(_lineSpacingNumeric);
+        Controls.Add(_outlineCheck);
         Controls.Add(promptLabel);
         Controls.Add(promptBox);
         Controls.Add(_translationBox);
@@ -316,8 +331,13 @@ public sealed class MainForm : Form
 
         _overlay = new OverlayForm(_font);
         _overlay.LineSpacing = Math.Clamp(_config.OverlayLineSpacing, 0.5f, 3.0f);
+        _overlay.ThickOutline = _config.OverlayThickOutline;
         _translationBox.TextChanged += (_, _) => UpdateOverlay();
         _translator.SummaryChanged += OnSummaryChanged;
+        _translator.SummaryStarted += OnSummaryStarted;
+        _translator.SummaryFinished += OnSummaryFinished;
+        _translator.StoryStarted += OnStoryStarted;
+        _translator.StoryFinished += OnStoryFinished;
         TryRestoreLastWindow();
     }
 
@@ -611,6 +631,15 @@ public sealed class MainForm : Form
         UpdateOverlay();
     }
 
+    private void ApplyOutline()
+    {
+        _config.OverlayThickOutline = _outlineCheck.Checked;
+        if (_overlay is not null)
+            _overlay.ThickOutline = _outlineCheck.Checked;
+        SaveConfig();
+        UpdateOverlay();
+    }
+
     private void UpdateOverlay()
     {
         if (_overlay is null)
@@ -690,6 +719,7 @@ public sealed class MainForm : Form
             BeginInvoke(new Action(OnTranslating));
             return;
         }
+        _translateStartedAt = DateTime.Now;
         SetStatus("翻译中…");
     }
 
@@ -708,12 +738,12 @@ public sealed class MainForm : Form
             // 图片里没有文字：清空译文区，不写入历史，避免显示上一次的译文。
             Log.Write("翻译结果判定为「无文字」，清空译文区");
             _translationBox.Text = "";
-            SetStatus($"已翻译 {DateTime.Now:HH:mm:ss}（无文字）");
+            SetStatus("已翻译（无文字）");
             return;
         }
         _translationBox.Text = Newlines.ToReal(result.Translation);
         AppendHistory(Newlines.ToLiteral(result.Original), Newlines.ToLiteral(result.Translation));
-        SetStatus($"已翻译 {DateTime.Now:HH:mm:ss}");
+        SetStatus($"已翻译{DescribeCost()}");
     }
 
     private void AppendHistory(string original, string translation)
@@ -752,6 +782,62 @@ public sealed class MainForm : Form
             _store.Save(_currentProcess, _translator.Summary);
     }
 
+    private void OnSummaryStarted()
+    {
+        if (IsDisposed)
+            return;
+        if (InvokeRequired)
+        {
+            BeginInvoke(new Action(OnSummaryStarted));
+            return;
+        }
+        SetStatus("总结中…");
+    }
+
+    private void OnStoryStarted()
+    {
+        if (IsDisposed)
+            return;
+        if (InvokeRequired)
+        {
+            BeginInvoke(new Action(OnStoryStarted));
+            return;
+        }
+        SetStatus("小结中…");
+    }
+
+    private void OnSummaryFinished()
+    {
+        if (IsDisposed)
+            return;
+        if (InvokeRequired)
+        {
+            BeginInvoke(new Action(OnSummaryFinished));
+            return;
+        }
+        RestoreIdleStatus();
+    }
+
+    private void OnStoryFinished()
+    {
+        if (IsDisposed)
+            return;
+        if (InvokeRequired)
+        {
+            BeginInvoke(new Action(OnStoryFinished));
+            return;
+        }
+        RestoreIdleStatus();
+    }
+
+    private void RestoreIdleStatus()
+    {
+        // 后台总结/小结结束：若状态仍停在「总结中…/小结中…」，恢复为监控/暂停状态；
+        // 若期间已切到「翻译中…」「已翻译…」等更新的状态，则不覆盖。
+        if (_statusLabel.Text is "总结中…" or "小结中…")
+            SetStatus(_timer is { Enabled: true } ? "监控中…" : "已暂停");
+    }
+
     private void ShowSummaryPopup()
     {
         var text = Newlines.ToReal(_translator.Summary ?? "");
@@ -777,6 +863,20 @@ public sealed class MainForm : Form
     }
 
     private void SetStatus(string message) => _statusLabel.Text = message;
+
+    /// <summary>生成「耗时 xx / 像素 xxk」后缀，附在「已翻译 HH:mm:ss」之后。</summary>
+    private string DescribeCost()
+    {
+        var elapsed = DateTime.Now - _translateStartedAt;
+        var elapsedText = elapsed.TotalSeconds >= 1
+            ? $"{elapsed.TotalSeconds:0.0}s"
+            : $"{elapsed.TotalMilliseconds:0}ms";
+
+        var pixels = _region is Rectangle r ? r.Width * r.Height : 0;
+        var kPixels = pixels / 1000;
+        var pixelText = kPixels > 0 ? $"{kPixels}k" : pixels.ToString();
+        return $"（耗时 {elapsedText}，像素 {pixelText}）";
+    }
 
     protected override void OnFormClosed(FormClosedEventArgs e)
     {

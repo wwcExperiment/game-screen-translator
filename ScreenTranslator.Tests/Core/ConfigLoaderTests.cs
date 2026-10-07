@@ -36,4 +36,22 @@ public sealed class ConfigLoaderTests
             File.Delete(path);
         }
     }
+
+    [Fact]
+    public void Save_and_Load_round_trips_target_language_and_outline()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"st_{Guid.NewGuid():N}.json");
+        var cfg = new AppConfig { TargetLanguage = "English", OverlayThickOutline = true };
+        try
+        {
+            ConfigLoader.Save(path, cfg);
+            var loaded = ConfigLoader.Load(path);
+            Assert.Equal("English", loaded.TargetLanguage);
+            Assert.True(loaded.OverlayThickOutline);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
 }

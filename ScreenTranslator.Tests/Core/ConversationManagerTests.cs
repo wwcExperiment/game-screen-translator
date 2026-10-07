@@ -136,6 +136,24 @@ public sealed class ConversationManagerTests
     }
 
     [Fact]
+    public void TargetLanguage_replaces_lang_placeholder_in_prompt()
+    {
+        var client = new RecordingClient();
+        var manager = new ConversationManager(client, "把文字翻译成{lang}") { TargetLanguage = "英语" };
+        var request = manager.BuildRequest(Png(1));
+        Assert.Equal("把文字翻译成英语", request[^1].Text);
+    }
+
+    [Fact]
+    public void TargetLanguage_defaults_to_chinese()
+    {
+        var client = new RecordingClient();
+        var manager = new ConversationManager(client, "翻译成{lang}");
+        var request = manager.BuildRequest(Png(1));
+        Assert.Equal("翻译成中文", request[^1].Text);
+    }
+
+    [Fact]
     public async Task SummaryChanged_event_raises_after_compression()
     {
         var client = new RecordingClient();

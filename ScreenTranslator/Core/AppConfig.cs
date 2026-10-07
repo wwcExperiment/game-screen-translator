@@ -23,8 +23,11 @@ public sealed class AppConfig
     /// <summary>是否启用长期留档（剧情梗概增量写入磁盘文件）。</summary>
     public bool StoryEnabled { get; set; } = false;
 
-    /// <summary>发送给模型的提示词。</summary>
-    public string Prompt { get; set; } = "把图片里的文字翻译成中文，并给出原文。只专注于识别并翻译画面上的文字，不要描述或评价画面内容（如背景、人物、场景等）。严格按以下格式输出（两个标签各自单独占一行，标签后接内容，可多行）：\n原文：\n译文：\n其中「原文：」后放图片里的原文，「译文：」后放中文译文。如果图片里没有任何文字，就只输出一个空行（不要描述画面内容）；禁止输出历史对话或上一次翻译里的任何内容，也不要任何解释或前缀。";
+    /// <summary>目标语言：翻译提示词中的 {lang} 占位符在请求时替换为此值。</summary>
+    public string TargetLanguage { get; set; } = "中文";
+
+    /// <summary>发送给模型的提示词（{lang} 占位符会替换为 <see cref="TargetLanguage"/>）。</summary>
+    public string Prompt { get; set; } = "把图片里的文字翻译成{lang}，并给出原文。只专注于识别并翻译画面上的文字，不要描述或评价画面内容（如背景、人物、场景等）。严格按以下格式输出（两个标签各自单独占一行，标签后接内容，可多行）：\n原文：\n译文：\n其中「原文：」后放图片里的原文，「译文：」后放{lang}译文。如果图片里没有任何文字，就只输出一个空行（不要描述画面内容）；禁止输出历史对话或上一次翻译里的任何内容，也不要任何解释或前缀。";
 
     /// <summary>近期摘要压缩提示词的默认值。</summary>
     public const string DefaultSummaryPrompt = "请把以上对话并入已有的近期摘要。你是一个翻译工具，本职工作是翻译，不是记录剧情或攻略：只保留对翻译有帮助、容易翻译错或需要保持一致的信息，例如专有名词（人名、地名、物品名）、术语、背景信息、当前场景与事件状态等；不要像游戏攻略那样记录「重要」的剧情事件或任务进展，凡与翻译无关的内容一律丢弃。摘要总长度必须严格控制在 400 字以内，这是一条硬性要求：宁可大胆丢弃旧信息，也绝不能超过 400 字，输出前请自行确认字数没有超限。明显是游戏界面元素而非文本的（如「载入」「保存」「购物」「休息」等菜单或提示）与翻译无关，可直接忽略，不必写入摘要。";
@@ -103,6 +106,9 @@ public sealed class AppConfig
 
     /// <summary>叠加层行距倍率：1.0 为字体默认行距，越大行间越稀疏。</summary>
     public float OverlayLineSpacing { get; set; } = 1.0f;
+
+    /// <summary>叠加层文字描边粗细：false=细描边（默认，单次 1px 阴影）；true=粗描边（四周约 2px）。</summary>
+    public bool OverlayThickOutline { get; set; } = false;
 
     /// <summary>目标窗口失去前台焦点时是否暂停检测并隐藏叠加层。关闭后无论是否前台都照常处理。</summary>
     public bool PauseWhenNotForeground { get; set; } = true;
