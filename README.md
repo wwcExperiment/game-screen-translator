@@ -16,7 +16,16 @@ It watches the chosen window/region, detects when the text on screen changes, an
 
 ## How it works
 
-- **Change detection + debounce** — each frame is downsampled to a grayscale signature; only a real change (after a short debounce) triggers a translation, so mid-transition text isn't sent.
+The core loop is **change → capture → translate → display**:
+
+1. **Change detection** — watch the chosen window/region and detect when the on-screen text actually changes (each frame is downscaled to a grayscale signature and compared).
+2. **Capture** — grab the changed frame.
+3. **Translate** — send the frame to the LLM via an OpenAI-compatible `/v1/chat/completions` request.
+4. **Display** — render the returned translation as an overlay at the original text position (or in a side panel).
+
+Supporting details:
+
+- **Debounce** — a short wait before triggering a translation, so mid-transition text isn't sent.
 - **Backoff** — when the screen keeps changing (animations), the wait before forcing a translation grows up to a ceiling instead of hammering the model.
 - **Model auto-discovery** — available models are listed from the server's `/v1/models` at startup.
 - **Rolling context + compression** — the last few turns ride along with each request; older turns are compressed into a short summary (and, optionally, a per-app story archive).
