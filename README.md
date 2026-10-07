@@ -12,7 +12,7 @@ It watches the chosen window/region, detects when the text on screen changes, an
 - **Overlay display** — render the translation over the original text position (or in a side panel).
 - **Short-term context** — a rolling window of recent turns keeps names, terms and wording consistent.
 - **Story summary** — optional per-app archive that summarizes the plot as you play.
-<img width="1775" height="970" alt="image" src="https://github.com/user-attachments/assets/6137ae9e-77ca-4647-9e4c-a6f6cd4a3bbd" />
+<img width="1775" height="970" alt="image" src="https://github.com/user-attachments/assets/d0f6126f-76a6-450f-88a5-6fa11cba5241" />
 
 ## How it works
 
