@@ -20,7 +20,7 @@ The core loop is **change → capture → translate → display**:
 
 1. **Change detection** — watch the chosen window/region and detect when the on-screen text actually changes (each frame is downscaled to a grayscale signature and compared).
 2. **Capture** — grab the changed frame.
-3. **Translate** — send the frame to the LLM via an OpenAI-compatible `/v1/chat/completions` request.
+3. **Translate** — send the frame to the LLM via an OpenAI-compatible `/v1/chat/completions` request. **Your model should support vision**
 4. **Display** — render the returned translation as an overlay at the original text position (or in a side panel).
 
 Supporting details:
