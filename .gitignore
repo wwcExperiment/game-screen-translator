@@ -1,0 +1,24 @@
+# 构建产物
+[Bb]in/
+[Oo]bj/
+.vs/
+
+# 运行时数据（日志 / 记忆）
+logs/
+memory/
+*.log
+
+# 用户本地文件
+*.user
+*.suo
+
+# 快捷方式
+*.lnk
+
+# 编译产物（exe 单独发布）
+*.exe
+*.dll
+*.pdb
+
+# Codegraph 索引
+.codegraph/
