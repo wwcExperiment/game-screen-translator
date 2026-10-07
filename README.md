@@ -1,6 +1,6 @@
 # game-screen-translator
 
-Capture a screen region (game dialogue, manga, documents, …) and translate the on-screen text **in place** — via any OpenAI-compatible model (LM Studio, Ollama, …) or a remote API.
+Capture a screen region (game window, galgame, manga, documents, …) and send image to LLM, translate the on-screen text and display **in place** — via any OpenAI-compatible model (LM Studio, Ollama, …) or a remote API.
 
 It watches the chosen window/region, detects when the text on screen changes, and sends only the changed frame to the model. The translation is rendered as an overlay at the original position (or in a side panel).
 
